@@ -18,6 +18,9 @@ end
 function _draw(dt)
     gfx.clear(gfx.COLOR_BLACK)
 
-    gfx.text_ex("Hello, Usagi!", 64, 32, 1, usagi.elapsed, gfx.COLOR_TRUE_WHITE, 1)
-    gfx_ex.text("Hello, Usagi!", 64, 64, gfx.COLOR_BLUE):rotate(usagi.elapsed):alpha(0.5):scale(2):draw()
+    gfx_ex.text("Hello, Usagi!", 32, 64, gfx.COLOR_BLUE)
+        :rotate(math.sin(usagi.elapsed*1.5)*0.025)
+        :scale(1)
+        :underline(gfx.COLOR_WHITE)
+        :draw()
 end
