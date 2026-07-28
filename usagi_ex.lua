@@ -1,9 +1,9 @@
 -- get mouse position once per frame
-local mouse_x, mouse_y = 0, 0
+local Mouse = {x = 0, y = 0}
 local last_mouse_update = 0
 local function update_mouse()
     if last_mouse_update ~= usagi.elapsed then
-        mouse_x, mouse_y = input.mouse()
+        Mouse.x, Mouse.y = input.mouse()
         last_mouse_update = usagi.elapsed
     end
 end
@@ -42,7 +42,8 @@ local text_ex = {
     _rotation = 0,
     _alpha = 1,
     _underlined = false,
-    _underline_color = 0
+    _underline_color = 0,
+    _hover = nil
 }
 
 --- Wrapper for gfx.text_ex.
@@ -106,28 +107,51 @@ function text_ex:underline(color)
     return self
 end
 
+--- Chain functions applied after this call only take affect if the mouse is hovering over the text
+---@return UsagiEX.text
+function text_ex:hover()
+    if self._hover then
+        return self._hover
+    end
+    local to_return = {}
+    setmetatable(to_return, {__index = self})
+    self._hover = to_return
+    return to_return
+end
+
 --- Draws the text to the screen.
 --- Ends the chain.
 function text_ex:draw()
-    gfx.text_ex(self._text, self._x, self._y, self._scale, self._rotation, self._color, self._alpha)
 
-    if self._underlined then
-        local scaled_x, scaled_ = self._size_x * self._scale, self._size_y * self._scale
+    update_mouse()
+
+    local this = self
+    if self._hover then
+        local my_rect = {x = self._x, y = self._y, w = self._size_x * self._scale, h = self._size_y * self._scale}
+        if util.point_in_rect(Mouse, my_rect) then
+            this = self._hover
+        end
+    end
+
+    gfx.text_ex(this._text, this._x, this._y, this._scale, this._rotation, this._color, this._alpha)
+
+    if this._underlined then
+        local scaled_x, scaled_ = this._size_x * this._scale, this._size_y * this._scale
         local scaled_half_x = scaled_x / 2
-        local mx, my = self._x + scaled_x / 2, self._y + scaled_ / 2
-        local underline_color = self._underline_color == -1 and self._color or self._underline_color
-        local y_offset = scaled_ / 2 + math.floor(self._scale * 1.5) - self._scale * 2
+        local mx, my = this._x + scaled_x / 2, this._y + scaled_ / 2
+        local underline_color = this._underline_color == -1 and this._color or this._underline_color
+        local y_offset = scaled_ / 2 + math.floor(this._scale * 1.5) - this._scale * 2
 
         local line_start = {x = -scaled_half_x, y = y_offset}
         local line_end = {x = scaled_half_x, y = y_offset}
 
-        if self._rotation ~= 0 then
-            line_start = util_ex.vec_rotate(line_start, self._rotation)
-            line_end = util_ex.vec_rotate(line_end, self._rotation)
+        if this._rotation ~= 0 then
+            line_start = util_ex.vec_rotate(line_start, this._rotation)
+            line_end = util_ex.vec_rotate(line_end, this._rotation)
         end
 
-        gfx.line_ex(mx + line_start.x, my + line_start.y, mx + line_end.x, my + line_end.y, self._scale,
-            underline_color, self._alpha)
+        gfx.line_ex(mx + line_start.x, my + line_start.y, mx + line_end.x, my + line_end.y, this._scale,
+            underline_color, this._alpha)
 
     end
 end
