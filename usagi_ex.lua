@@ -1,5 +1,7 @@
+local origin = { x = 0, y = 0 }
+
 -- get mouse position once per frame
-local Mouse = {x = 0, y = 0}
+local Mouse = { x = 0, y = 0 }
 local last_mouse_update = 0
 local function update_mouse()
     if last_mouse_update ~= usagi.elapsed then
@@ -22,6 +24,51 @@ function util_ex.vec_rotate(vec, angle)
         y = vec.x * math.sin(angle) + vec.y * math.cos(angle)
     }
     return to_return
+end
+
+--- Linear interpolation that smoothly crosses the 2/0 boundary for radians.
+--- `t = 0` returns `a`, `t = 1` returns `b`.
+--- Values of `t` outside `[0, 1]` extrapolate (no clamping).
+---@param a number  a number in radians
+---@param b number  a number in radians
+---@param t number
+---@return number
+function util_ex.lerp_rotate(a, b, t)
+
+    a, b = util.wrap(a, 0, 2), util.wrap(b, 0, 2)
+    local dist = math.abs(b - a)
+    if dist > 1 then
+        dist = 2 - dist
+        local sign = b > a and -1 or 1
+        return a + t * dist * sign
+    end
+    return util.lerp(a, b, t)
+end
+
+---Returns the dot product of two `{x, y}` vectors.
+---@param a Usagi.Vec2
+---@param b Usagi.Vec2
+---@return number
+function util_ex.dot(a, b)
+    return a.x * b.x + a.y * b.y
+end
+
+---Returns the smallest angle between an `{x, y}` vector and `{1, 0}`.
+---@param vec Usagi.Vec2
+---@return number
+function util_ex.angle_from_vec(vec)
+    local o = { x = 1, y = 0 }
+    return math.acos(util_ex.dot(vec, o) / util.vec_dist(vec, origin)) / math.pi
+end
+
+---Returns the clockwise angle between an `{x, y}` vector and `{1, 0}`.
+---Any vector where y is negative will produce a value greater than 1.
+---@param vec Usagi.Vec2
+---@return number
+function util_ex.full_angle_from_vec(vec)
+    local o = { x = 1, y = 0 }
+    local angle = math.acos(util_ex.dot(vec, o) / util.vec_dist(vec, origin)) / math.pi
+    return vec.y < 1 and 2 - angle or angle
 end
 
 --[[ EXPANDED GFX FUNCTIONS ]]
@@ -114,7 +161,7 @@ function text_ex:hover()
         return self._hover
     end
     local to_return = {}
-    setmetatable(to_return, {__index = self})
+    setmetatable(to_return, { __index = self })
     self._hover = to_return
     return to_return
 end
@@ -122,12 +169,11 @@ end
 --- Draws the text to the screen.
 --- Ends the chain.
 function text_ex:draw()
-
     update_mouse()
 
     local this = self
     if self._hover then
-        local my_rect = {x = self._x, y = self._y, w = self._size_x * self._scale, h = self._size_y * self._scale}
+        local my_rect = { x = self._x, y = self._y, w = self._size_x * self._scale, h = self._size_y * self._scale }
         if util.point_in_rect(Mouse, my_rect) then
             this = self._hover
         end
@@ -142,8 +188,8 @@ function text_ex:draw()
         local underline_color = this._underline_color == -1 and this._color or this._underline_color
         local y_offset = scaled_ / 2 + math.floor(this._scale * 1.5) - this._scale * 2
 
-        local line_start = {x = -scaled_half_x, y = y_offset}
-        local line_end = {x = scaled_half_x, y = y_offset}
+        local line_start = { x = -scaled_half_x, y = y_offset }
+        local line_end = { x = scaled_half_x, y = y_offset }
 
         if this._rotation ~= 0 then
             line_start = util_ex.vec_rotate(line_start, this._rotation)
@@ -152,6 +198,5 @@ function text_ex:draw()
 
         gfx.line_ex(mx + line_start.x, my + line_start.y, mx + line_end.x, my + line_end.y, this._scale,
             underline_color, this._alpha)
-
     end
 end
